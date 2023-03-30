@@ -5,7 +5,6 @@ use core::{
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-
 #[allow(dead_code)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -83,23 +82,33 @@ impl Writer {
     }
 
     fn new_line(&mut self) {
-        for y in 0..BUFFER_HEIGHT {
+        for y in 0..BUFFER_HEIGHT-1 {
             for x in 0..BUFFER_WIDTH {
                 unsafe {
                     write_volatile(
                         &mut self.buf.chars[y][x],
-                        match y + 1 {
-                            BUFFER_HEIGHT => ScreenChar {
-                                ascii_character: b' ',
-                                color_code: self.c,
-                            },
-                            _ => read_volatile(&mut self.buf.chars[y + 1][x]),
-                        },
+                        read_volatile(&mut self.buf.chars[y + 1][x])
                     )
                 }
             }
         }
+        self.clear_line();
         self.px = 0;
+    }
+
+    pub fn clear_line(&mut self) {
+        self.px = 0;
+        for i in 0..BUFFER_WIDTH {
+            unsafe {
+                write_volatile(
+                    &mut self.buf.chars[BUFFER_HEIGHT - 1][i],
+                    ScreenChar {
+                        ascii_character: b' ',
+                        color_code: self.c,
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -114,10 +123,10 @@ impl fmt::Write for Writer {
         Ok(())
     }
 }
-lazy_static!{
+lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         px: 0,
-        c: ColorCode::new(Color::White, Color::Black),
+        c: ColorCode::new(Color::Green, Color::Black),
         buf: unsafe { &mut *(0xb8000 as *mut Buffer) },
     });
 }
