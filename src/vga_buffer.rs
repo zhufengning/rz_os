@@ -82,12 +82,12 @@ impl Writer {
     }
 
     fn new_line(&mut self) {
-        for y in 0..BUFFER_HEIGHT-1 {
+        for y in 0..BUFFER_HEIGHT - 1 {
             for x in 0..BUFFER_WIDTH {
                 unsafe {
                     write_volatile(
                         &mut self.buf.chars[y][x],
-                        read_volatile(&mut self.buf.chars[y + 1][x])
+                        read_volatile(&mut self.buf.chars[y + 1][x]),
                     )
                 }
             }
@@ -123,6 +123,7 @@ impl fmt::Write for Writer {
         Ok(())
     }
 }
+
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         px: 0,
@@ -146,4 +147,26 @@ macro_rules! println {
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     WRITER.lock().write_fmt(args).unwrap();
+}
+
+#[test_case]
+fn test_println_simple() {
+    println!("test_println_simple output");
+}
+
+#[test_case]
+fn test_println_many() {
+    for _ in 0..200 {
+        println!("test_println_many output");
+    }
+}
+
+#[test_case]
+fn test_println_output() {
+    let s = "Some test string that fits on a single line";
+    println!("{}", s);
+    for (i, c) in s.chars().enumerate() {
+        let screen_char = unsafe{read_volatile(&WRITER.lock().buf.chars[BUFFER_HEIGHT - 2][i])};
+        assert_eq!(char::from(screen_char.ascii_character), c);
+    }
 }

@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
-
 use crate::{gdt, println};
 
 lazy_static! {
@@ -25,4 +24,10 @@ extern "x86-interrupt" fn double_fault_handler_fn(stack_frame: InterruptStackFra
 
 pub fn init_idt() {
     IDT.load();
+}
+
+#[test_case]
+fn test_breakpoint_exception() {
+    // invoke a breakpoint exception
+    x86_64::instructions::interrupts::int3();
 }
